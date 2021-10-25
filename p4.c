@@ -161,10 +161,11 @@ int ask_column(int player){
 }
 
 
-/*puts a token in the given column at the lowest line possible*/
-void place_token(int player, int column){
+/*puts a token in the given column at the lowest line possible, which is returned*/
+int place_token(int player, int column){
   int line_to_place_on = search_lowest_available(column);
   tabl[line_to_place_on][column] = player;
+  return line_to_place_on;
 }
 /*counts the number of successive token in the direction given starting from the position given*/
 int numb_successive_token(int player, int start_line, int start_col, int direc_line, int direc_col){
@@ -197,8 +198,8 @@ bool victory_test(int player, int line, int col){
 }
 
 /*switches between the different players*/
-int change_player(int player){
-  return player == 1 ? 2 : 1;
+void change_player(int* player){
+  *player = *player == 1 ? 2 : 1;
 }
 
 bool player_turn(int tokens_placed, int actual_player){
@@ -206,8 +207,7 @@ bool player_turn(int tokens_placed, int actual_player){
   int actual_turn = tokens_placed/2 +1;
   printf("\nTURN NUMBER %d\n", actual_turn);
   int col_chosen = ask_column(actual_player);
-  int line_token_placed = search_lowest_available(col_chosen);
-  place_token(actual_player, col_chosen);
+  int line_token_placed = place_token(actual_player, col_chosen);
   if (victory_test(actual_player, line_token_placed, col_chosen)){
     print_tabl();
     printf("Player %d won in %d turns, congratulations !! \n", actual_player, actual_turn);
@@ -242,7 +242,7 @@ void player_versus_player(int num_line, int num_col){
     }
 
     tokens_placed++;
-    actual_player = change_player(actual_player);
+    change_player(&actual_player);
   }
   if (victory == false){
     printf("Draw : no one managed to align 4 tokens !\n");
@@ -266,13 +266,13 @@ void player_versus_ia(int num_line, int num_col){
     if (actual_player_type == 1){
       victory = player_turn(tokens_placed, actual_player_type);
       tokens_placed++;
-      actual_player_type = change_player(actual_player_type);
+      change_player(&actual_player_type);
     }
     else {
       bot_turn();
       tokens_placed++;
         
-      actual_player_type = change_player(actual_player_type);
+      change_player(&actual_player_type);
     }
   }
   if (victory == false){
@@ -287,18 +287,19 @@ int main(void){
   bool correct_input; 
   int verif_scan;
   int max_num_column = 100;
-  printf("Welcome to the puissance 4 game, please write the number of the mode you want to play \n(write 1 for basic Player 1v1, 2 for a Player 1v1 with custom number of lines/columns, 3 for Player vs IA and 4 to exit) : ");
+  printf("Welcome to the puissance 4 game !\n\nPlease select the mode you want to play :\n 1 for basic Player 1v1, \n 2 for a Player 1v1 with custom number of lines/columns, \n 3 for Player vs IA \n 4 to exit\n");
   do{
+    printf("Enter you choice : ");
     verif_scan = scanf("%d", &gamemode_chosen);
     correct_input = true;
     if (verif_scan == 0){
       buffer_drain();
-      printf("\nYou didn't write a number, please try again \n(1 for basic Player 1v1, 2 for a Player 1v1 with custom number of lines/columns, 3 for Player vs IA and 4 to exit) : ");
+      printf("\nYou didn't enter a number, please try again !\n");
       correct_input = false;
     }
     else
       if (gamemode_chosen < 1 || gamemode_chosen > 4){
-      printf("\nPlease write a correct number \n(1 for basic Player 1v1, 2 for a Player 1v1 with custom number of lines/columns, 3 for Player vs IA and 4 to exit) : ");
+      printf("\nPlease enter a correct number\n");
       correct_input = false;
     }
   }
@@ -309,20 +310,15 @@ int main(void){
     player_versus_player(num_line, num_col);
   }
   
+
   else if (gamemode_chosen == 2){
-    num_line = 6;
-    num_col = 7;
-    player_versus_ia(num_line, num_col);
-  }
-  
-  else if (gamemode_chosen == 3){
     printf("\nPlease enter the number of line you want : ");
     do {
       verif_scan = scanf("%d", &num_line);
       correct_input = true;
       if (verif_scan == 0){
         buffer_drain();
-        printf("\nYou didn't write a number, please try again : ");
+        printf("\nYou didn't enter a number, please try again : ");
         correct_input = false;
       }
 
@@ -334,13 +330,13 @@ int main(void){
       correct_input = true;
       if (verif_scan == 0){
         buffer_drain();
-        printf("\nYou didn't write a number, please try again : ");
+        printf("\nYou didn't enter a number, please try again : ");
         correct_input = false;
       }
 
       else 
         if(num_col < 1 || num_col > max_num_column){
-          printf("\n You didn't write a number between 1 and %d, please try again : ", max_num_column);
+          printf("\n You didn't enter a number between 1 and %d, please try again : ", max_num_column);
           correct_input = false;
         }
     } while (correct_input == false);
@@ -348,6 +344,15 @@ int main(void){
     player_versus_player(num_line, num_col);
 
   }
+  
+
+  else if (gamemode_chosen == 3){
+    num_line = 6;
+    num_col = 7;
+    player_versus_ia(num_line, num_col);
+  }
+  
+  
 
   else if(gamemode_chosen == 4){
     printf("\nGoodbye !\n\n");
