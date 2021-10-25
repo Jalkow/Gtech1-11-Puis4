@@ -251,6 +251,21 @@ void player_versus_player(int num_line, int num_col){
 
 bool bot_turn(){
   int i;
+  bool already_played = false;  
+  for(i; i<num_col; i++){
+    if(victory_test(2, search_lowest_available(i),i)==true){
+      place_token(2,i);
+      already_played=true;
+    }
+    if(victory_test(1, search_lowest_available(i),i)==true && already_played == false){
+      place_token(2,i);
+      already_played=true;
+    }
+  }
+  if(already_played == false){
+    place_token(2,rand()%num_col);  
+   
+  }	  
 }
 
 /* plays a game of puissance 4 with 1 human player against a bot*/
@@ -287,6 +302,7 @@ int main(void){
   bool correct_input; 
   int verif_scan;
   int max_num_column = 100;
+
   printf("Welcome to the puissance 4 game !\n\nPlease select the mode you want to play :\n 1 for basic Player 1v1, \n 2 for a Player 1v1 with custom number of lines/columns, \n 3 for Player vs IA \n 4 to exit\n");
   do{
     printf("Enter you choice : ");
@@ -310,7 +326,6 @@ int main(void){
     player_versus_player(num_line, num_col);
   }
   
-
   else if (gamemode_chosen == 2){
     printf("\nPlease enter the number of line you want : ");
     do {
@@ -351,7 +366,6 @@ int main(void){
     num_col = 7;
     player_versus_ia(num_line, num_col);
   }
-  
   
 
   else if(gamemode_chosen == 4){
