@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 int num_line;
 int num_col;
@@ -168,7 +169,7 @@ int place_token(int player, int column){
   return line_to_place_on;
 }
 /*counts the number of successive token in the direction given starting from the position given*/
-int numb_successive_token(int player, int start_line, int start_col, int direc_line, int direc_col){
+int numb_successive_token_in_direction(int player, int start_line, int start_col, int direc_line, int direc_col){
   int numb_tokens = 0;
   int actual_line = start_line + direc_line;
   int actual_col = start_col + direc_col;
@@ -185,16 +186,40 @@ int numb_successive_token(int player, int start_line, int start_col, int direc_l
   return numb_tokens;
 }
 
+/* for each axis (vertical, horizontal, diagonals), verifies the number of tokens aligned with the token of given coords and returns the highest value */
+int numb_tokens_aligned(int player, int line, int col){
+  int array_number_tokens_aligned[4];
+  int numb_max_of_alignment = 0;
+  int i;
+
+  array_number_tokens_aligned[0] = numb_successive_token_in_direction(player, line, col, 1, 0) + numb_successive_token_in_direction(player, line, col, -1, 0); /* veritcal axis*/
+  array_number_tokens_aligned[1] = numb_successive_token_in_direction(player, line, col, 0, 1) + numb_successive_token_in_direction(player, line, col, 0, -1); /* horizontal axis*/
+  array_number_tokens_aligned[2] = numb_successive_token_in_direction(player, line, col, -1, 1) + numb_successive_token_in_direction(player, line, col, 1, -1); /*diagonal from bottom left to top right*/
+  array_number_tokens_aligned[3] = numb_successive_token_in_direction(player, line, col, -1, -1) + numb_successive_token_in_direction(player, line, col, 1, 1); /* diagonal from top left to bottom right*/
+
+  for (i=0; i<4; i++){
+    if (array_number_tokens_aligned[i] > numb_max_of_alignment){
+      numb_max_of_alignment = array_number_tokens_aligned[i];
+    }
+  }
+
+  return numb_max_of_alignment;
+}
+
 /*tests if there is a 4-token alignement from a certain position*/
 bool victory_test(int player, int line, int col){
-  if(numb_successive_token(player, line, col, 1, 0) + numb_successive_token(player, line, col, -1, 0) >= 3 /* veritcal axis*/
-  || numb_successive_token(player, line, col, 0, 1) + numb_successive_token(player, line, col, 0, -1) >= 3 /* horizontal axis*/
-  || numb_successive_token(player, line, col, -1, 1) + numb_successive_token(player, line, col, 1, -1) >= 3 /*diagonal from bottom left to top right*/
-  || numb_successive_token(player, line, col, -1, -1) + numb_successive_token(player, line, col, 1, 1) >= 3) /* diagonal from top left to bottom right*/ 
-  {
+  if(numb_tokens_aligned(player, line, col) >= 3){
     return true;
   }
-  return false;
+  else{
+    return false;
+  }
+  
+}
+
+/* tests if placing a token in a certain column will lead to losing next turn and returns the answer as a bool*/
+bool move_leads_to_lose(int player, int line, int col){
+  return (victory_test(player, line-1, col));
 }
 
 /*switches between the different players*/
@@ -249,44 +274,82 @@ void player_versus_player(int num_line, int num_col){
   }
 }
 
+/* makes the bot play one turn */
 bool bot_turn(){
   int i;
-  bool already_played = false;  
-  for(i; i<num_col; i++){
-    if(victory_test(2, search_lowest_available(i),i)==true){
+  int max_numb_tokens_aligned = 0;
+  int col_max_token_aligned;
+  int line_max_token_aligned;
+  int line;
+  bool already_played = false;
+  bool victory = false;
+  for(i=0; i<num_col; i++){
+    line = search_lowest_available(i);
+    if(victory_test(2, line,i)==true && search_lowest_available(i) != -1 && already_played == false){
+      place_token(2,i);
+      already_played=true;
+      victory = true;
+    }
+    if(victory_test(1, line,i)==true && search_lowest_available(i) != -1 && already_played == false){
       place_token(2,i);
       already_played=true;
     }
-    if(victory_test(1, search_lowest_available(i),i)==true && already_played == false){
-      place_token(2,i);
-      already_played=true;
+    if (numb_tokens_aligned(2, line, i) > max_numb_tokens_aligned){
+      col_max_token_aligned = i;
+      line_max_token_aligned = line;
+      max_numb_tokens_aligned = numb_tokens_aligned(2, line, i);
     }
   }
+
+  if (max_numb_tokens_aligned != 0 && move_leads_to_lose(1, line_max_token_aligned, col_max_token_aligned) != true && already_played == false && search_lowest_available(col_max_token_aligned) != -1){
+    place_token(2, col_max_token_aligned);
+    already_played = true;
+  }
+
   if(already_played == false){
-    place_token(2,rand()%num_col);  
-   
-  }	  
+    srand(time(NULL));
+    int random_col;
+    int random_line;
+    bool good_placement;
+    do{
+      good_placement = false;
+      random_col = rand() % 7;
+      random_line = search_lowest_available(random_col);
+      if (move_leads_to_lose(1, random_line, random_col) == false && random_line != -1){
+        good_placement = true;
+        place_token(2, random_col);
+      }
+    } while (good_placement == false); 
+  }
+
+  return victory;
 }
 
 /* plays a game of puissance 4 with 1 human player against a bot*/
 void player_versus_ia(int num_line, int num_col){
   int max_tokens = num_col * num_line;
   int tokens_placed = 0;
+  int actual_turn;
   int actual_player_type = 1;
   bool victory = false;
   init_tabl(num_line, num_col);
   printf("Welcome to Puissance4 (Player versus IA)!  \nGame size is %dx%d\n", num_line, num_col);
 
   while(victory == false && tokens_placed < max_tokens){
+    actual_turn = tokens_placed/2 +1;
     if (actual_player_type == 1){
       victory = player_turn(tokens_placed, actual_player_type);
       tokens_placed++;
       change_player(&actual_player_type);
     }
     else {
-      bot_turn();
+      victory = bot_turn();
       tokens_placed++;
-        
+      if (victory == true){
+        print_tabl();
+        printf("The bot won in %d turns !! \n", actual_turn);
+      }
+      
       change_player(&actual_player_type);
     }
   }
