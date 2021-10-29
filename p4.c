@@ -136,7 +136,7 @@ int ask_column(int player){
     }
     
     else {
-      if(col_chosen < 1 || col_chosen > 7){
+      if(col_chosen < 1 || col_chosen > num_col){
         printf("The value you have written isn't a number between 1 and %d, please retry : ", num_col);
         correct_input = false;
         skip_next_test = true;
